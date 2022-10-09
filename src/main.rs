@@ -1,14 +1,10 @@
-use anyhow::Result;
 use std::time::Duration;
 
-#[must_use]
-struct Item;
+mod notion_queue_reader;
+mod types;
 
-#[must_use]
-enum ItemOutput {
-    Success,
-    Error,
-}
+use notion_queue_reader::NotionQueueReader;
+use types::{Item, ItemOutput};
 
 impl Item {
     async fn run(self) -> ItemOutput {
@@ -22,14 +18,11 @@ impl ItemOutput {
     }
 }
 
-async fn get_item() -> Result<Item> {
-    todo!()
-}
-
 #[tokio::main]
 async fn main() {
+    let item_getter = NotionQueueReader::from_env().expect("Couldn't create Notion API");
     loop {
-        let item = match get_item().await {
+        let item = match item_getter.get_item().await {
             Ok(item) => item,
             Err(err) => {
                 println!("Error getting item: {err}");

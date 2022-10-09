@@ -5,5 +5,5 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.65"
-notion = "0.4.1"
+notion = { git = "https://github.com/yancouto/notion" }
 tokio = "1.21.2"

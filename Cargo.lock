@@ -496,8 +496,7 @@ dependencies = [
 [[package]]
 name = "notion"
 version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a16550ef5a098dfb861e0066d52eefcf6a5f0c47c35cdf8654d85b2ecb90a2e"
+source = "git+https://github.com/yancouto/notion#c5764c046c17320a20f76942d88d8e20d6058638"
 dependencies = [
  "chrono",
  "reqwest",
