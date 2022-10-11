@@ -40,9 +40,8 @@ impl StableDiffusionRunner {
     }
 
     pub(crate) async fn run(&self, item: Item) -> ItemOutput {
-        match self.run_impl(item).await {
-            Ok(_) => ItemOutput::Success,
-            Err(_) => ItemOutput::Error,
+        ItemOutput {
+            result: self.run_impl(item).await,
         }
     }
 }

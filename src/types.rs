@@ -18,7 +18,6 @@ pub(crate) struct Txt2Img {
 }
 
 #[must_use]
-pub(crate) enum ItemOutput {
-    Success,
-    Error,
+pub(crate) struct ItemOutput {
+    pub result: anyhow::Result<()>,
 }

@@ -1,6 +1,6 @@
 use std::{str::FromStr, time::Duration};
 
-use crate::types::{CommonArgs, Item, Txt2Img};
+use crate::types::{CommonArgs, Item, ItemOutput, Txt2Img};
 use anyhow::{Context, Result};
 use notion::{
     ids::DatabaseId,
@@ -26,7 +26,7 @@ const STEPS: &str = "Steps";
 const WIDTH: &str = "Width";
 const HEIGHT: &str = "Height";
 
-pub(crate) struct NotionQueueReader {
+pub(crate) struct NotionIntegration {
     api: NotionApi,
     id: DatabaseId,
 }
@@ -92,7 +92,7 @@ fn convert(page: Page) -> Result<Item> {
     })
 }
 
-impl NotionQueueReader {
+impl NotionIntegration {
     pub fn from_env() -> Result<Self> {
         Ok(Self {
             api: NotionApi::new(std::env::var("NOTION_TOKEN").context("Missing NOTION_TOKEN")?)?,
@@ -147,5 +147,9 @@ impl NotionQueueReader {
                 Err(err)
             }
         }
+    }
+
+    pub async fn save(&self, output: ItemOutput) -> Result<()> {
+        todo!()
     }
 }
