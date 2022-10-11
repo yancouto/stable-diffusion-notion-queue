@@ -1,16 +1,12 @@
 use std::time::Duration;
 
 mod notion_queue_reader;
+mod stable_difussion_runner;
 mod types;
 
 use notion_queue_reader::NotionQueueReader;
-use types::{Item, ItemOutput};
-
-impl Item {
-    async fn run(self) -> ItemOutput {
-        todo!()
-    }
-}
+use stable_difussion_runner::StableDiffusionRunner;
+use types::ItemOutput;
 
 impl ItemOutput {
     async fn save(self) {
@@ -21,6 +17,7 @@ impl ItemOutput {
 #[tokio::main]
 async fn main() {
     let item_getter = NotionQueueReader::from_env().expect("Couldn't create Notion API");
+    let runner = StableDiffusionRunner;
     loop {
         let item = match item_getter.get_item().await {
             Ok(item) => item,
@@ -32,7 +29,7 @@ async fn main() {
             }
         };
         println!("Item: {item:?}");
-        let output = item.run().await;
+        let output = runner.run(item).await;
         output.save().await;
     }
 }

@@ -11,7 +11,7 @@ use notion::{
             DatabaseQuery, DatabaseSort, FilterCondition, PropertyCondition, SelectCondition,
             SortDirection,
         },
-        Number, Page,
+        Page,
     },
     NotionApi,
 };
