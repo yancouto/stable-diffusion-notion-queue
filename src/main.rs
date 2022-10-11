@@ -31,6 +31,7 @@ async fn main() {
                 continue;
             }
         };
+        println!("Item: {item:?}");
         let output = item.run().await;
         output.save().await;
     }
