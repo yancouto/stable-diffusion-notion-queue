@@ -23,6 +23,7 @@ const TXT2IMG: &str = "txt2img";
 const STATUS: &str = "Status";
 const STATUS_FAILED: &str = "Failed";
 const STATUS_DONE: &str = "Done";
+const STATUS_IN_PROGRESS: &str = "In progress";
 const PRIORITY: &str = "Priority";
 const ON_QUEUE: &str = "On queue";
 const PROMPT: &str = "Prompt";
@@ -104,6 +105,7 @@ fn convert(page: Page) -> Result<Item> {
 enum Status {
     // TODO: Add results, like the image links
     Ok,
+    InProgress,
     Err { reason: String },
 }
 
@@ -135,6 +137,7 @@ impl Status {
     fn status_str(&self) -> String {
         match self {
             Self::Err { .. } => STATUS_FAILED.to_string(),
+            Self::InProgress => STATUS_IN_PROGRESS.to_string(),
             Self::Ok => STATUS_DONE.to_string(),
         }
     }
@@ -145,6 +148,7 @@ impl Status {
                 properties.insert(ERROR.to_string(), text(reason));
             }
             Self::Ok => {}
+            Self::InProgress => {}
         }
     }
 }
@@ -219,7 +223,10 @@ impl NotionIntegration {
         println!("Page: {page:?}");
         let page_id = page.id.clone();
         match convert(page) {
-            Ok(item) => Ok(item),
+            Ok(item) => {
+                self.update_status(page_id, Status::InProgress).await?;
+                Ok(item)
+            }
             Err(err) => {
                 println!("Failed to convert page, marking it as error in Notion. {err}");
                 self.update_status(
