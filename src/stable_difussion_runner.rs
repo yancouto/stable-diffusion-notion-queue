@@ -1,4 +1,4 @@
-use crate::types::{CommonArgs, Item, ItemOutput};
+use crate::types::{CommonArgs, Item, ItemOutput, SdCommand};
 use anyhow::Result;
 use tokio::process::Command;
 
@@ -19,9 +19,9 @@ impl CommonArgs {
 pub(crate) struct StableDiffusionRunner;
 
 impl StableDiffusionRunner {
-    async fn run_impl(&self, item: Item) -> Result<()> {
-        use Item::*;
-        match item {
+    async fn run_impl(&self, cmd: SdCommand) -> Result<()> {
+        use SdCommand::*;
+        match cmd {
             Txt2Img(txt2img) => {
                 let mut cmd = Command::new("conda");
                 // TODO: Move to CLI arg
@@ -40,8 +40,8 @@ impl StableDiffusionRunner {
     }
 
     pub(crate) async fn run(&self, item: Item) -> ItemOutput {
-        ItemOutput {
-            result: self.run_impl(item).await,
-        }
+        let page_id = item.page_id;
+        let result = self.run_impl(item.cmd).await;
+        ItemOutput { page_id, result }
     }
 }

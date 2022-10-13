@@ -1,6 +1,13 @@
+use notion::ids::PageId;
+
 #[derive(Debug)]
-#[must_use]
-pub(crate) enum Item {
+pub(crate) struct Item {
+    pub page_id: PageId,
+    pub cmd: SdCommand,
+}
+
+#[derive(Debug)]
+pub(crate) enum SdCommand {
     Txt2Img(Txt2Img),
 }
 
@@ -19,5 +26,6 @@ pub(crate) struct Txt2Img {
 
 #[must_use]
 pub(crate) struct ItemOutput {
+    pub page_id: PageId,
     pub result: anyhow::Result<()>,
 }

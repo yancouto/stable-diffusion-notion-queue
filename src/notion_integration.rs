@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr, time::Duration};
 
-use crate::types::{CommonArgs, Item, ItemOutput, Txt2Img};
+use crate::types::{CommonArgs, Item, ItemOutput, SdCommand, Txt2Img};
 use anyhow::{Context, Result};
 use notion::{
     ids::{DatabaseId, PageId},
@@ -83,8 +83,8 @@ impl PageHelper for Page {
 }
 
 fn convert(page: Page) -> Result<Item> {
-    Ok(match page.get_select(TYPE)? {
-        TXT2IMG => Item::Txt2Img(Txt2Img {
+    let cmd = match page.get_select(TYPE)? {
+        TXT2IMG => SdCommand::Txt2Img(Txt2Img {
             common_args: CommonArgs {
                 prompt: page.get_text(PROMPT)?.to_string(),
                 steps: page.get_maybe_u64(STEPS)?,
@@ -93,6 +93,10 @@ fn convert(page: Page) -> Result<Item> {
             },
         }),
         other => anyhow::bail!("Unrecognized type: {other:?}"),
+    };
+    Ok(Item {
+        page_id: page.id,
+        cmd,
     })
 }
 
