@@ -1,17 +1,19 @@
-use std::{str::FromStr, time::Duration};
+use std::{collections::HashMap, str::FromStr, time::Duration};
 
 use crate::types::{CommonArgs, Item, ItemOutput, Txt2Img};
 use anyhow::{Context, Result};
 use notion::{
-    ids::DatabaseId,
+    ids::{DatabaseId, PageId},
     models::{
+        page::UpdatePageQuery,
         paging::Paging,
-        properties::{PropertyValue, SelectedValue},
+        properties::{PropertyValue, SelectedValue, WritePropertyValue, WriteSelectedValue},
         search::{
             DatabaseQuery, DatabaseSort, FilterCondition, PropertyCondition, SelectCondition,
             SortDirection,
         },
-        Page,
+        text::{RichText, RichTextCommon, Text},
+        Page, WriteProperties,
     },
     NotionApi,
 };
@@ -25,6 +27,8 @@ const PROMPT: &str = "Prompt";
 const STEPS: &str = "Steps";
 const WIDTH: &str = "Width";
 const HEIGHT: &str = "Height";
+const STATUS_FAILED: &str = "Failed";
+const ERROR: &str = "Error";
 
 pub(crate) struct NotionIntegration {
     api: NotionApi,
@@ -92,6 +96,50 @@ fn convert(page: Page) -> Result<Item> {
     })
 }
 
+enum Status {
+    Failed { reason: String },
+}
+
+fn select(name: String) -> WriteSelectedValue {
+    WriteSelectedValue {
+        id: None,
+        name: Some(name),
+        color: None,
+    }
+}
+
+fn text(txt: String) -> WritePropertyValue {
+    WritePropertyValue::Text {
+        rich_text: vec![RichText::Text {
+            rich_text: RichTextCommon {
+                plain_text: txt.clone(),
+                href: None,
+                annotations: None,
+            },
+            text: Text {
+                content: txt,
+                link: None,
+            },
+        }],
+    }
+}
+
+impl Status {
+    fn status_str(&self) -> String {
+        match self {
+            Self::Failed { .. } => STATUS_FAILED.to_string(),
+        }
+    }
+
+    fn add_extra(self, properties: &mut HashMap<String, WritePropertyValue>) {
+        match self {
+            Self::Failed { reason } => {
+                properties.insert(ERROR.to_string(), text(reason));
+            }
+        }
+    }
+}
+
 impl NotionIntegration {
     pub fn from_env() -> Result<Self> {
         Ok(Self {
@@ -100,6 +148,27 @@ impl NotionIntegration {
                 &std::env::var("DATABASE_ID").context("Missing DATABASE_ID")?,
             )?,
         })
+    }
+
+    async fn update_status(&self, page_id: PageId, status: Status) -> Result<()> {
+        let mut properties = HashMap::new();
+        properties.insert(
+            STATUS.to_string(),
+            WritePropertyValue::Status {
+                status: Some(select(status.status_str())),
+            },
+        );
+        status.add_extra(&mut properties);
+        self.api
+            .update_page(
+                page_id,
+                UpdatePageQuery {
+                    properties: Some(WriteProperties { properties }),
+                    ..Default::default()
+                },
+            )
+            .await?;
+        Ok(())
     }
 
     pub async fn get_item(&self) -> Result<Item> {
@@ -139,11 +208,18 @@ impl NotionIntegration {
             }
         };
         println!("Page: {page:?}");
+        let page_id = page.id.clone();
         match convert(page) {
             Ok(item) => Ok(item),
             Err(err) => {
                 println!("Failed to convert page, marking it as error in Notion. {err}");
-                todo!("implement changing page on notion crate");
+                self.update_status(
+                    page_id,
+                    Status::Failed {
+                        reason: format!("Couldn't convert page: {err}"),
+                    },
+                )
+                .await?;
                 Err(err)
             }
         }
