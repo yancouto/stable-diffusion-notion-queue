@@ -25,6 +25,8 @@ async fn main() {
         let output = runner.run(item).await;
         if let Err(err) = notion.save(output).await {
             println!("Error saving item output: {err}");
+            println!("Sleeping 60s");
+            tokio::time::sleep(Duration::from_secs(60)).await;
         }
     }
 }

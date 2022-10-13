@@ -21,13 +21,14 @@ use notion::{
 const TYPE: &str = "Type";
 const TXT2IMG: &str = "txt2img";
 const STATUS: &str = "Status";
+const STATUS_FAILED: &str = "Failed";
+const STATUS_DONE: &str = "Done";
 const PRIORITY: &str = "Priority";
 const ON_QUEUE: &str = "On queue";
 const PROMPT: &str = "Prompt";
 const STEPS: &str = "Steps";
 const WIDTH: &str = "Width";
 const HEIGHT: &str = "Height";
-const STATUS_FAILED: &str = "Failed";
 const ERROR: &str = "Error";
 
 pub(crate) struct NotionIntegration {
@@ -101,7 +102,9 @@ fn convert(page: Page) -> Result<Item> {
 }
 
 enum Status {
-    Failed { reason: String },
+    // TODO: Add results, like the image links
+    Ok,
+    Err { reason: String },
 }
 
 fn select(name: String) -> WriteSelectedValue {
@@ -131,15 +134,17 @@ fn text(txt: String) -> WritePropertyValue {
 impl Status {
     fn status_str(&self) -> String {
         match self {
-            Self::Failed { .. } => STATUS_FAILED.to_string(),
+            Self::Err { .. } => STATUS_FAILED.to_string(),
+            Self::Ok => STATUS_DONE.to_string(),
         }
     }
 
     fn add_extra(self, properties: &mut HashMap<String, WritePropertyValue>) {
         match self {
-            Self::Failed { reason } => {
+            Self::Err { reason } => {
                 properties.insert(ERROR.to_string(), text(reason));
             }
+            Self::Ok => {}
         }
     }
 }
@@ -219,7 +224,7 @@ impl NotionIntegration {
                 println!("Failed to convert page, marking it as error in Notion. {err}");
                 self.update_status(
                     page_id,
-                    Status::Failed {
+                    Status::Err {
                         reason: format!("Couldn't convert page: {err}"),
                     },
                 )
@@ -230,6 +235,18 @@ impl NotionIntegration {
     }
 
     pub async fn save(&self, output: ItemOutput) -> Result<()> {
-        todo!()
+        match output.result {
+            Ok(()) => self.update_status(output.page_id, Status::Ok).await?,
+            Err(err) => {
+                self.update_status(
+                    output.page_id,
+                    Status::Err {
+                        reason: format!("Failed to run cmd: {err}"),
+                    },
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 }
